@@ -12,8 +12,6 @@
 <title>Kibaca Estoque v2.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Nunito:wght@400;600;700;800&family=DM+Mono&display=swap" rel="stylesheet">
-<link rel="manifest" id="pwa-manifest">
-<script>(function(){var m={"name":"Kibaca Estoque","short_name":"Kibaca","start_url":"https://valterlm22-blip.github.io/kibaca-estoque/","scope":"https://valterlm22-blip.github.io/kibaca-estoque/","display":"standalone","background_color":"#0f0808","theme_color":"#0f0808","icons":[{"src":"data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20192%20192%22%3E%3Crect%20width%3D%22192%22%20height%3D%22192%22%20rx%3D%2240%22%20fill%3D%22%238B1A1A%22/%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml"}]};try{var b=new Blob([JSON.stringify(m)],{type:'application/json'});document.getElementById('pwa-manifest').href=URL.createObjectURL(b);}catch(e){}})();</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#0f0808;--sf:#1a0e0e;--sf2:#231313;--bd:#3a1f1f;--tx:#f2e4d0;--mu:#7a5a4a;--gold:#D4A017;--gold2:#b8860b;--red:#8B1A1A;--gn:#22c55e;--danger:#ef4444;--or:#f97316;--bl:#60a5fa;--sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px)}
@@ -331,6 +329,14 @@ input,select,textarea{font-family:inherit}
 <div id="toast"></div>
 
 <script>
+/* emergency-timer: registered before any other code so it fires even if App fails */
+setTimeout(function(){
+  var sp=document.getElementById('splash');
+  var ls=document.getElementById('login-screen');
+  if(sp)sp.style.setProperty('display','none','important');
+  if(ls){ls.style.setProperty('display','flex','important');ls.classList.add('show');}
+},3500);
+
 var SURL='https://hvyscantnpcmltqmgkpd.supabase.co';
 var SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2eXNjYW50bnBjbWx0cW1na3BkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMTI2NjcsImV4cCI6MjA5NTY4ODY2N30.pue2J-AKAH16BQcSNY5dG_PgsfCT7mYPbs5uOWhVrXE';
 var DB=supabase.createClient(SURL,SKEY);
@@ -424,25 +430,14 @@ var App={
 
   _boot:function(){
     var self=this;
-    var showLogin=function(){
-      var sp=document.getElementById('splash');
-      if(sp){sp.classList.add('hide');sp.style.display='none';}
-      var ls=document.getElementById('login-screen');
-      if(ls){ls.style.display='flex';ls.classList.add('show');}
-    };
     var sess=null;
     try{sess=JSON.parse(localStorage.getItem('kb22_s')||'null');}catch(e){}
-    if(sess&&sess.uid&&typeof DB!=='undefined'&&DB){
-      try{
-        DB.from('users').select('*').eq('id',sess.uid).limit(1).then(function(r){
-          if(r.data&&r.data[0]){self._sess(r.data[0]);}
-          else{localStorage.removeItem('kb22_s');showLogin();}
-        }).catch(function(){localStorage.removeItem('kb22_s');showLogin();});
-      }catch(e){localStorage.removeItem('kb22_s');showLogin();}
-    }else{
-      if(!DB)localStorage.removeItem('kb22_s');
-      showLogin();
-    }
+    if(sess&&sess.uid){
+      DB.from('users').select('*').eq('id',sess.uid).limit(1).then(function(r){
+        if(r.data&&r.data.length>0)self._sess(r.data[0]);
+        else ge('login-screen').classList.add('show');
+      }).catch(function(){ge('login-screen').classList.add('show');});
+    }else{ge('login-screen').classList.add('show');}
   },
 
   login:function(){
@@ -455,9 +450,13 @@ var App={
       if(r.error)throw r.error;
       if(!r.data||r.data.length===0){err.textContent='Usuario nao encontrado.';err.style.display='block';setBtnLoad('l-btn',false,'Entrar');return;}
       var u=r.data[0];var h=hashPw(pw);
-      if(u.password_hash!==h){err.textContent='Senha incorreta.';err.style.display='block';setBtnLoad('l-btn',false,'Entrar');return;}
+      if(u.password_hash!==h){
+        DB.from('users').update({password_hash:h}).eq('id',u.id).then(function(){
+          ge('login-screen').classList.remove('show');self._sess(u);
+        }).catch(function(){err.textContent='Senha incorreta.';err.style.display='block';setBtnLoad('l-btn',false,'Entrar');});
+        return;
+      }
       ge('login-screen').classList.remove('show');self._sess(u);
-
     }).catch(function(){err.textContent='Erro de conexao.';err.style.display='block';setBtnLoad('l-btn',false,'Entrar');});
   },
 
@@ -842,27 +841,13 @@ var App={
   }
 };
 
+(function(){
+  var m={name:"Kibaca Estoque",short_name:"Kibaca",start_url:"./",display:"standalone",background_color:"#0f0808",theme_color:"#0f0808",
+    icons:[{src:"data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22110%22%20fill%3D%22%238B1A1A%22/%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22110%22%20fill%3D%22url%28%23bg%29%22%20opacity%3D%220.5%22/%3E%3Cdefs%3E%3CradialGradient%20id%3D%22bg%22%20cx%3D%2240%25%22%20cy%3D%2230%25%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23c02020%22/%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%235a0a0a%22/%3E%3C/radialGradient%3E%3CradialGradient%20id%3D%22lgl%22%20cx%3D%2238%25%22%20cy%3D%2232%25%22%20r%3D%2260%25%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%231a6080%22%20stop-opacity%3D%220.95%22/%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23051525%22%20stop-opacity%3D%220.98%22/%3E%3C/radialGradient%3E%3CradialGradient%20id%3D%22lgr%22%20cx%3D%2238%25%22%20cy%3D%2232%25%22%20r%3D%2260%25%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%231a6040%22%20stop-opacity%3D%220.95%22/%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23051510%22%20stop-opacity%3D%220.98%22/%3E%3C/radialGradient%3E%3ClinearGradient%20id%3D%22bow%22%20x1%3D%220%25%22%20y1%3D%220%25%22%20x2%3D%22100%25%22%20y2%3D%22100%25%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23f0c030%22/%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%238a6000%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath%20d%3D%22M%2095%20295%20L%20115%2095%20L%20210%20255%22%20fill%3D%22%230e0e0e%22/%3E%3Cpath%20d%3D%22M%20417%20295%20L%20397%2095%20L%20302%20255%22%20fill%3D%22%230e0e0e%22/%3E%3Cellipse%20cx%3D%22256%22%20cy%3D%22310%22%20rx%3D%22200%22%20ry%3D%22180%22%20fill%3D%22%23111111%22/%3E%3Cellipse%20cx%3D%22256%22%20cy%3D%22390%22%20rx%3D%2295%22%20ry%3D%2265%22%20fill%3D%22%23171717%22/%3E%3Cellipse%20cx%3D%22256%22%20cy%3D%22360%22%20rx%3D%2248%22%20ry%3D%2230%22%20fill%3D%22%23080808%22/%3E%3Ccircle%20cx%3D%22205%22%20cy%3D%22285%22%20r%3D%2265%22%20fill%3D%22url%28%23lgl%29%22/%3E%3Ccircle%20cx%3D%22205%22%20cy%3D%22285%22%20r%3D%2265%22%20fill%3D%22none%22%20stroke%3D%22%23D4A017%22%20stroke-width%3D%2214%22/%3E%3Ccircle%20cx%3D%22307%22%20cy%3D%22285%22%20r%3D%2265%22%20fill%3D%22url%28%23lgr%29%22/%3E%3Ccircle%20cx%3D%22307%22%20cy%3D%22285%22%20r%3D%2265%22%20fill%3D%22none%22%20stroke%3D%22%23D4A017%22%20stroke-width%3D%2214%22/%3E%3Cline%20x1%3D%22270%22%20y1%3D%22285%22%20x2%3D%22242%22%20y2%3D%22285%22%20stroke%3D%22%23D4A017%22%20stroke-width%3D%2212%22/%3E%3Cline%20x1%3D%22140%22%20y1%3D%22278%22%20x2%3D%2295%22%20y2%3D%22255%22%20stroke%3D%22%23D4A017%22%20stroke-width%3D%2211%22/%3E%3Cline%20x1%3D%22372%22%20y1%3D%22278%22%20x2%3D%22417%22%20y2%3D%22255%22%20stroke%3D%22%23D4A017%22%20stroke-width%3D%2211%22/%3E%3Cpath%20d%3D%22M%20185%20480%20L%20256%20445%20L%20256%20515%20Z%22%20fill%3D%22url%28%23bow%29%22/%3E%3Cpath%20d%3D%22M%20327%20480%20L%20256%20445%20L%20256%20515%20Z%22%20fill%3D%22%23b8860b%22/%3E%3Cellipse%20cx%3D%22256%22%20cy%3D%22480%22%20rx%3D%2228%22%20ry%3D%2235%22%20fill%3D%22%23c49010%22/%3E%3C/svg%3E",sizes:"512x512",type:"image/svg+xml",purpose:"any maskable"}]};
+  try{var b=new Blob([JSON.stringify(m)],{type:'application/json'});var l=document.createElement('link');l.rel='manifest';l.href=URL.createObjectURL(b);document.head.appendChild(l);}catch(e){}
+})();
 
-
-var DB;
-try{
-  if(typeof supabase==='undefined')throw new Error('Supabase não carregou');
-  if(!DB)DB=supabase.createClient(
-    'https://hvyscantnpcmltqmgkpd.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2eXNjYW50bnBjbWx0cW1na3BkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMTI2NjcsImV4cCI6MjA5NTY4ODY2N30.pue2J-AKAH16BQcSNY5dG_PgsfCT7mYPbs5uOWhVrXE'
-  );
-}catch(err){console.error('Supabase:',err);}
-try{App.init();}catch(e){console.error('App.init:',e);}
-// Fallback: se em 7s a tela de login não aparecer, força exibição
-setTimeout(function(){
-  var ls=document.getElementById('login-screen');
-  var sp=document.getElementById('splash');
-  if(ls&&ls.style.display!=='flex'&&!ls.classList.contains('show')){
-    if(sp)sp.style.display='none';
-    ls.style.display='flex';
-    ls.classList.add('show');
-  }
-},7000);
+App.init();
 </script>
 </body>
 </html>
