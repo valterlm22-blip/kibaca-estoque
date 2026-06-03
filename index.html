@@ -329,6 +329,30 @@ input,select,textarea{font-family:inherit}
 <div id="toast"></div>
 
 <script>
+/* === DEBUG OVERLAY === */
+(function(){
+  var d=document.createElement('div');
+  d.id='_dbg';
+  d.style.cssText='position:fixed;top:0;left:0;right:0;background:#000;color:#0f0;font:10px monospace;z-index:999999;padding:4px 6px;max-height:35vh;overflow-y:auto;border-bottom:1px solid #0f0;';
+  document.body.appendChild(d);
+  window._log=function(msg){
+    var el=document.getElementById('_dbg');
+    if(el){var t=new Date().toISOString().substr(14,5);el.innerHTML+='<div>'+t+' '+msg+'</div>';}
+  };
+  window._log('1. Script carregado');
+})();
+
+setTimeout(function(){
+  window._log('2. Timer 3.5s disparou');
+  var sp=document.getElementById('splash');
+  var ls=document.getElementById('login-screen');
+  window._log('3. splash: '+(sp?'ENCONTRADO':'NULO'));
+  window._log('4. login-screen: '+(ls?'ENCONTRADO':'NULO'));
+  if(sp){sp.style.setProperty('display','none','important');window._log('5. splash ocultado');}
+  if(ls){ls.style.setProperty('display','flex','important');ls.classList.add('show');window._log('6. login EXIBIDO');}
+  else{window._log('6. ERRO: login-screen nao encontrado!');}
+},3500);
+
 /* emergency-timer: registered before any other code so it fires even if App fails */
 setTimeout(function(){
   var sp=document.getElementById('splash');
@@ -339,7 +363,9 @@ setTimeout(function(){
 
 var SURL='https://hvyscantnpcmltqmgkpd.supabase.co';
 var SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2eXNjYW50bnBjbWx0cW1na3BkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMTI2NjcsImV4cCI6MjA5NTY4ODY2N30.pue2J-AKAH16BQcSNY5dG_PgsfCT7mYPbs5uOWhVrXE';
-var DB=supabase.createClient(SURL,SKEY);
+var DB;
+try{DB=supabase.createClient(SURL,SKEY);window._log('supabase OK');}
+catch(e){window._log('ERRO supabase: '+e.message);}
 function hashPw(s){var h=[1779033703,-1150833019,1013904242,-1521486534,1359893119,-1694144372,528734635,1541325730];function n(a,b){var l=(a&65535)+(b&65535),m=(a>>16)+(b>>16)+(l>>16);return m<<16|l&65535}function r(a,b){return a>>>b|a<<32-b}var k=[1116352408,1899447441,-1245643825,-373957723,961987163,1508970993,-1841331548,-1424204075,-670586216,310598401,607225278,1426881987,1925078388,-2132889090,-1680079193,-1046744716,-459576895,-272742522,264347078,604807628,770255983,1249150122,1555081692,1996064986,-2117940946,-1838011259,-1564481375,-1474664885,-1035236496,-949202525,-778901479,-694614492,-200395387,275423344,430227734,506948616,659060556,883997877,958139571,-2067236844,-1933114872,-1866530822,-1538233109,-1090935817,-965641998,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,2024104815,-1740746414,-1473132947,-1341970488,-1084653625,-958395405,-710438585];var c=[];var i,j,t1,t2,a,b,e,f,g,hh;var l=s.length*8;s=unescape(encodeURIComponent(s));var B=[];for(i=0;i<s.length;i++)B[i>>2]|=s.charCodeAt(i)<<24-8*(i%4);B[l>>5]|=128<<24-l%32;B[(l+64>>9<<4)+15]=l;for(i=0;i<B.length;i+=16){a=h[0];b=h[1];e=h[2];f=h[3];g=h[4];hh=h[5];var o=h[6];var p=h[7];for(j=0;j<64;j++){if(j<16)c[j]=B[i+j]|0;else c[j]=n(n(n(r(c[j-2],17)^r(c[j-2],19)^c[j-2]>>>10,c[j-7]),n(r(c[j-15],7)^r(c[j-15],18)^c[j-15]>>>3,c[j-16])));t1=n(n(n(n(p,r(g,6)^r(g,11)^r(g,25)),g&hh^~g&o),k[j]),c[j]);t2=n(r(a,2)^r(a,13)^r(a,22),(a&b^a&e^b&e));p=o;o=hh;hh=g;g=n(f,t1);f=e;e=b;b=a;a=n(t1,t2)}h[0]=n(a,h[0]);h[1]=n(b,h[1]);h[2]=n(e,h[2]);h[3]=n(f,h[3]);h[4]=n(g,h[4]);h[5]=n(hh,h[5]);h[6]=n(o,h[6]);h[7]=n(p,h[7])}var x='';for(i=0;i<h.length;i++){var w=h[i];for(j=7;j>=0;j--)x+='0123456789abcdef'[(w>>j*4)&15]}return x}
 var MONTHS=['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 var VTITLES={dashboard:'Dashboard',movement:'Lancar',history:'Historico',products:'Produtos',report:'Relatorio',purchase:'Compras',settings:'Configuracoes'};
@@ -847,7 +873,13 @@ var App={
   try{var b=new Blob([JSON.stringify(m)],{type:'application/json'});var l=document.createElement('link');l.rel='manifest';l.href=URL.createObjectURL(b);document.head.appendChild(l);}catch(e){}
 })();
 
-App.init();
+try{
+  window._log('7. App.init() chamado');
+  App.init();
+  window._log('8. App.init() concluido');
+}catch(e){
+  window._log('ERRO App.init: '+e.message);
+}
 </script>
 </body>
 </html>
